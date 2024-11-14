@@ -116,4 +116,3 @@ while running:
     clock.tick(30)  # Control the frame rate
 
 pygame.quit()
-
