@@ -23,8 +23,8 @@ Pygame (for visualization)
 
 2. **Install Pygame(if needed)**
 
-``` pip install -r requirements.txt
+``` pip install -r requirements.txt ```
 
 3. **Run maze.py**
 
-``` python3 maze.py
+``` python3 maze.py ```
