@@ -10,8 +10,8 @@ IDS: Combines the depth-first search approach with iterative deepening for pathf
 Real-time Visualization: Shows how each algorithm explores the maze step by step.
 
 ### Requirements
-Python 3.x
-Pygame (for visualization)
+- Python 3.x
+- Pygame (for visualization)
 
 ### Installation
 
