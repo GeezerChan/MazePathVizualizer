@@ -24,21 +24,20 @@ Pygame (for visualization)
 
    ```bash
    https://github.com/GeezerChan/MazePathVizualizer.git
-
    ```
 
 2. **Install Pygame(if needed)**
 
-``` pip install -r requirements.txt
+``` pip install -r requirements.txt ```
 OR
-``` pip install pygame
+``` pip install pygame ```
 
 Alterate way to install if you have different version of python
 
-``` py -m pip install pygame
+``` py -m pip install pygame ```
 
 3. **Run maze.py**
 
-``` python3 maze.py
+``` python3 maze.py ```
 OR
-``` python maze.py
+``` python maze.py ```
