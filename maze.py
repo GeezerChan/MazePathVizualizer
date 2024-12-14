@@ -9,7 +9,7 @@ pygame.init()
 
 # Screen dimensions
 WIDTH, HEIGHT = 500, 500
-ROWS, COLS = 40, 40  # Grid size
+ROWS, COLS = 20, 20  # Grid size
 CELL_SIZE = WIDTH // COLS
 
 # Colors
