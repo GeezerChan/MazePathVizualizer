@@ -2,13 +2,14 @@ import pygame
 import random
 import heapq
 import time
+import sys
 
 # Initialize Pygame
 pygame.init()
 
 # Screen dimensions
-WIDTH, HEIGHT = 600, 600
-ROWS, COLS = 20, 20  # Grid size
+WIDTH, HEIGHT = 500, 500
+ROWS, COLS = 40, 40  # Grid size
 CELL_SIZE = WIDTH // COLS
 
 # Colors
@@ -27,6 +28,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Maze Solver: A*, IDS, BFS")
 
 clock = pygame.time.Clock()
+
+a_star_steps = 0
+ids_steps = 0
+bfs_steps = 0
 
 class Cell:
     def __init__(self, row, col):
@@ -124,22 +129,9 @@ def get_neighbors_unvisited(cell):
         neighbors.append(grid[row][col + 1])
     return neighbors
 
-def bfs(start, end):
-    queue = [(start, [start])]
-    while queue:
-        current, path = queue.pop(0)
-        if current == end:
-            return path
-        for neighbor in get_neighbors(current):
-            if neighbor not in path:
-                new_path = path + [neighbor]
-                queue.append((neighbor, new_path))
-                neighbor.draw(screen, PINK)
-                pygame.display.flip()
-                pygame.time.delay(10)
-    return None
-
 def a_star(start, end):
+    global a_star_steps
+
     def heuristic(a, b):
         return abs(a.row - b.row) + abs(a.col - b.col)
 
@@ -148,6 +140,7 @@ def a_star(start, end):
     came_from = {}
     g_score = {start: 0}
     f_score = {start: heuristic(start, end)}
+    memory_usage = sys.getsizeof(open_set) + sys.getsizeof(g_score) + sys.getsizeof(f_score)
 
     while open_set:
         _, current = heapq.heappop(open_set)
@@ -156,7 +149,8 @@ def a_star(start, end):
             while current in came_from:
                 path.append(current)
                 current = came_from[current]
-            return path[::-1]
+            return path[::-1], memory_usage
+        
         for neighbor in get_neighbors(current):
             tentative_g_score = g_score[current] + 1
             if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
@@ -164,19 +158,40 @@ def a_star(start, end):
                 g_score[neighbor] = tentative_g_score
                 f_score[neighbor] = tentative_g_score + heuristic(neighbor, end)
                 heapq.heappush(open_set, (f_score[neighbor], neighbor))
-                neighbor.draw(screen, YELLOW)
-                pygame.display.flip()
-                pygame.time.delay(10)
-    return None
+                memory_usage = max(memory_usage, sys.getsizeof(open_set))
+                a_star_steps += 1
+    return None, memory_usage
+
+def bfs(start, end):
+    global bfs_steps
+
+    queue = [(start, [start])]
+    memory_usage = sys.getsizeof(queue)
+
+    while queue:
+        current, path = queue.pop(0)
+        if current == end:
+            return path, memory_usage
+
+        for neighbor in get_neighbors(current):
+            if neighbor not in path:
+                new_path = path + [neighbor]
+                queue.append((neighbor, new_path))
+                memory_usage = max(memory_usage, sys.getsizeof(queue))
+                bfs_steps += 1
+    return None, memory_usage
 
 def iterative_deepening(start, end):
     def dfs(depth, current, path):
+        global ids_steps
         if depth == 0:
             return None
         if current == end:
             return path
+        
         for neighbor in get_neighbors(current):
             if neighbor not in path:
+                ids_steps += 1
                 new_path = path + [neighbor]
                 result = dfs(depth - 1, neighbor, new_path)
                 if result:
@@ -184,10 +199,12 @@ def iterative_deepening(start, end):
         return None
 
     depth = 1
+    memory_usage = 0
     while True:
         path = dfs(depth, start, [start])
+        memory_usage = max(memory_usage, sys.getsizeof(path))
         if path:
-            return path
+            return path, memory_usage
         depth += 1
 
 def get_neighbors(cell):
@@ -203,54 +220,60 @@ def get_neighbors(cell):
         neighbors.append(grid[row][col + 1])
     return neighbors
 
+def draw_text(screen, text, x, y, color=WHITE):
+ font = pygame.font.SysFont("Arial", 24)
+ label = font.render(text, True, color)
+ screen.blit(label, (x, y))
+
 def draw_grid(path_a_star=None, path_ids=None, path_bfs=None):
-    screen.fill(BLACK)
-    for row in grid:
-        for cell in row:
-            cell.draw(screen)
-    if path_a_star:
-        for cell in path_a_star:
-            cell.draw(screen, BLUE)
-    if path_ids:
-        for cell in path_ids:
-            if cell in path_a_star:
-                cell.draw(screen, PURPLE)
-            else:
-                cell.draw(screen, ORANGE)
-    if path_bfs:
-        for cell in path_bfs:
-            if cell in path_a_star or cell in path_ids:
-                cell.draw(screen, PURPLE)
-            else:
-                cell.draw(screen, PINK)
-    grid[0][0].draw(screen, GREEN)
-    grid[ROWS - 1][COLS - 1].draw(screen, RED)
-    pygame.display.flip()
+ screen.fill(BLACK)
+ for row in grid:
+     for cell in row:
+         cell.draw(screen)
+
+ # Draw paths
+ if path_a_star:
+     for cell in path_a_star:
+         cell.draw(screen, BLUE)
+ if path_ids:
+     for cell in path_ids:
+         color = PURPLE if cell in path_a_star else ORANGE
+         cell.draw(screen, color)
+ if path_bfs:
+     for cell in path_bfs:
+         color = PURPLE if cell in path_a_star or cell in path_ids else PINK
+         cell.draw(screen, color)
+
+ # Start and End Cells
+ grid[0][0].draw(screen, GREEN)
+ grid[ROWS - 1][COLS - 1].draw(screen, RED)
+ pygame.display.flip()
+
 
 generate_maze()
 
 start = grid[0][0]
 end = grid[ROWS - 1][COLS - 1]
 
-# Measure A* Time
+# Measure A* Time and Memory
 start_time = time.time()
-path_a_star = a_star(start, end)
+path_a_star, memory_a_star = a_star(start, end)
 a_star_time = time.time() - start_time
 
-# Measure IDS Time
+# Measure IDS Time and Memory
 start_time = time.time()
-path_ids = iterative_deepening(start, end)
+path_ids, memory_ids = iterative_deepening(start, end)
 ids_time = time.time() - start_time
 
-# Measure BFS Time
+# Measure BFS Time and Memory
 start_time = time.time()
-path_bfs = bfs(start, end)
+path_bfs, memory_bfs = bfs(start, end)
 bfs_time = time.time() - start_time
 
-# Print out times and color feedback in the terminal
-print(f"A* Search Time (Blue): {a_star_time:.4f}s")
-print(f"IDS Time (Orange): {ids_time:.4f}s")
-print(f"BFS Time (Pink): {bfs_time:.4f}s")
+# Print out times and memory usage
+print(f"A* Search Time (Blue): {a_star_time:.4f}s, Memory: {memory_a_star / 1024:.4f} KB, A* Total Steps: {a_star_steps}")
+print(f"IDS Time (Orange): {ids_time:.4f}s, Memory: {memory_ids / 1024:.4f} KB, IDS Total Steps: {ids_steps}")
+print(f"BFS Time (Pink): {bfs_time:.4f}s, Memory: {memory_bfs / 1024:.4f} KB, BFS Total Steps: {bfs_steps}")
 
 running = True
 while running:
